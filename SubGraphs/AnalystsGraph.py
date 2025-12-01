@@ -1,4 +1,4 @@
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from typing import List
 from typing_extensions import TypedDict
 from pydantic import BaseModel, Field
@@ -50,10 +50,7 @@ class GenerateAnalystsState(TypedDict, total=False):
 class AnalystGraph:
     def __init__(self):
         super(AnalystGraph, self).__init__()
-        self.openRouter = ChatOpenAI(
-            base_url="https://openrouter.ai/api/v1",
-            model="nvidia/nemotron-nano-9b-v2:free"
-        )
+        self.gemini = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
         self.instructions = analyst_instructions
     
     def create_analysts(self, state: GenerateAnalystsState) -> dict[str, any]:
@@ -71,7 +68,7 @@ class AnalystGraph:
         human_analyst_feedback = state['human_analyst_feedback']
         
         
-        structured_llm = self.openRouter.with_structured_output(AnalystTeam)
+        structured_llm = self.gemini.with_structured_output(AnalystTeam)
         
         system_message = self.instructions.format(topic=topic,
                                                     human_analyst_feedback=human_analyst_feedback,
