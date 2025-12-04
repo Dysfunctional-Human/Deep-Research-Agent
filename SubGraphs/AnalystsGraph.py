@@ -35,7 +35,7 @@ class Analyst(BaseModel):
         return f"Name: {self.name}\nRole: {self.role}\nAffiliation: {self.affiliation}\nDescription: {self.description}\n"
     
 class AnalystTeam(BaseModel):
-    analystTeam: List[Analyst] = Field(
+    analysts: List[Analyst] = Field(
         description="Comprehensive list of analysts with their roles and affiliations"
     )
     
@@ -45,46 +45,52 @@ class GenerateAnalystsState(TypedDict, total=False):
     topic: str  # Research topic
     max_analysts: int   # Number of analysts
     human_analyst_feedback: str     # Human feedback
-    analystTeam: List[Analyst]  # Team of analysts
+    analysts: List[Analyst]  # Team of analysts
+    
+def create_analysts(state: GenerateAnalystsState) -> dict[str, any]:
+    """Create the team of analysts
+
+    Args:
+        state (GenerateAnalystsState): Subgraph state for analyst creation
+
+    Returns:
+        dict[str, any]: Generated analysts
+    """
+    
+    topic = state['topic']
+    # print('hi-------')
+    # print(state)
+    max_analysts = state['max_analysts']
+    try:
+        human_analyst_feedback = state['human_analyst_feedback']
+        state['human_analyst_feedback'] = None
+    except:
+        human_analyst_feedback = None
+    
+    gemini = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+    structured_llm = gemini.with_structured_output(AnalystTeam)
+    
+    system_message = analyst_instructions.format(topic=topic,
+                                                human_analyst_feedback=human_analyst_feedback,
+                                                max_analysts=max_analysts)
+
+    analysts = structured_llm.invoke([SystemMessage(content=system_message)] + [HumanMessage(content="Generate the set of analysts")])
+    
+    return {"analysts": analysts.analysts, "messages": [topic]}
+
+def human_feedback(state: GenerateAnalystsState):
+    """Dummy node for human-in-the-loop interruption
+
+    Args:
+        state (GenerateAnalystsState): Subgraph state for analyst creation
+    """
+    pass
     
 class AnalystGraph:
     def __init__(self):
         super(AnalystGraph, self).__init__()
         self.gemini = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
         self.instructions = analyst_instructions
-    
-    def create_analysts(self, state: GenerateAnalystsState) -> dict[str, any]:
-        """Create the team of analysts
-
-        Args:
-            state (GenerateAnalystsState): Subgraph state for analyst creation
-
-        Returns:
-            dict[str, any]: Generated analysts
-        """
-        
-        topic = state['topic']
-        max_analysts = state['max_analysts']
-        human_analyst_feedback = state['human_analyst_feedback']
-        
-        
-        structured_llm = self.gemini.with_structured_output(AnalystTeam)
-        
-        system_message = self.instructions.format(topic=topic,
-                                                    human_analyst_feedback=human_analyst_feedback,
-                                                    max_analysts=max_analysts)
-    
-        analysts = structured_llm.invoke([SystemMessage(content=system_message)] + [HumanMessage(content="Generate the set of analysts")])
-        
-        return {"analystTeam": analysts.analystTeam, "messages": [topic]}
-    
-    def human_feedback(state: GenerateAnalystsState):
-        """Dummy node for human-in-the-loop interruption
-
-        Args:
-            state (GenerateAnalystsState): Subgraph state for analyst creation
-        """
-        pass
     
     def should_continue(state: GenerateAnalystsState) -> Literal["create_analysts", END]:       #type: ignore
         """Return the next node to route to
@@ -95,10 +101,13 @@ class AnalystGraph:
         Returns:
             Literal["create_analysts", END]: Next node to execute
         """
+        try:
+            human_feedback = state['human_analyst_feedback']
+        except:
+            human_feedback = None
         
-        human_analyst_feedback = state['human_analyst_feedback']
-        if human_analyst_feedback and human_analyst_feedback != 'continue':
-            state['messages'].append(human_analyst_feedback)
+        if human_feedback and human_feedback != 'continue':
+            state['messages'].append(human_feedback)
             return "create_analysts"
 
         return END
@@ -113,8 +122,8 @@ class AnalystGraph:
             graph: The analyst creation graph
         """
         builder = StateGraph(GenerateAnalystsState)
-        builder.add_node("create_analysts", self.create_analysts)
-        builder.add_node("human_feedback", self.human_feedback)
+        builder.add_node("create_analysts", create_analysts)
+        builder.add_node("human_feedback", human_feedback)
         
         builder.add_edge(START, "create_analysts")
         builder.add_edge("create_analysts", "human_feedback")

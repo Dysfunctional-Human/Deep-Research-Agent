@@ -37,7 +37,10 @@ def route_messages(state: InterviewState, name: str = "expert") -> Literal['save
     """
     # Get messages
     messages = state['messages']
-    max_num_turns = state['max_num_turns']
+    try:
+        max_num_turns = state['max_num_turns']
+    except:
+        max_num_turns = 3
     
     # Check the number of expert answers
     num_responses = len(
