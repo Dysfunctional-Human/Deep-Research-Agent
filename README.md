@@ -8,8 +8,12 @@ The Deep Research Agent automatically:
 - Writes structured sections per analyst  
 - Synthesizes everything into a polished **markdown research report**
 
-This README is strictly based on the source files:
-`Researcher.py`, `AnalystsGraph.py`, and `InterviewGraph.py`.
+
+## 🔗 Graph Structure
+<img width="598" height="507" alt="Screenshot 2025-12-02 000031" src="https://github.com/user-attachments/assets/fdfb34b8-7126-4952-9506-ac96d49e0fb4" />
+
+#### Inside the conduct_interview sub-graph
+<img width="677" height="535" alt="Screenshot 2025-12-01 235953" src="https://github.com/user-attachments/assets/5211f55b-d2c9-48c0-8a16-0f4f0199aa61" />
 
 ---
 ## 📁 Project Structure
