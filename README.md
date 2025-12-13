@@ -81,6 +81,13 @@ result = graph.run({
 print(result["final_report"])
 ```
 
+To run the file, just open the terminal in base directory and
+```
+langgraph build -t my-image
+docker compose up
+```
+Then navigate to langsmith to open LangGraph Studio
+
 ### 📥 Inputs
 | Key | Type | Description |
 |----------|----------|----------|
